@@ -11,18 +11,13 @@ st.set_page_config(page_title="Orquestador EB2-NIW", page_icon="🛡️", layout
 
 # --- 2. INICIALIZACIÓN DE CONEXIONES ---
 try:
-    # Google & OpenAI
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     client_openai = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-    
-    # Anthropic - Conexión robusta
     client_claude = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
-    
-    # Supabase
     supabase = create_client(st.secrets["supabase"]["url"], st.secrets["supabase"]["key"])
     st.sidebar.success("✅ Conexión con APIs exitosa (EAS v4)")
 except Exception as e:
-    st.sidebar.error("⚠️ Revisa los Secrets en Streamlit Settings")
+    st.sidebar.error("⚠️ Error en Secrets: Revisa las llaves de API.")
     st.stop()
 
 # --- 3. INTERFAZ ---
@@ -33,33 +28,31 @@ tabs = st.tabs(["📂 Gestión de Evidencia", "✍️ Generador de Argumentos", 
 
 with tabs[0]:
     st.header("Carga Segura de Documentación")
-    archivo = st.file_uploader("Subir evidencia para el [Peticionario Alfa]", type=['pdf', 'png', 'jpg', 'docx'])
+    archivo = st.file_uploader("Subir evidencia", type=['pdf', 'png', 'jpg', 'docx'])
     if archivo:
-        st.success(f"Archivo '{archivo.name}' recibido correctamente.")
+        st.success("Documento recibido para análisis.")
 
 with tabs[1]:
-    st.header("Redacción Técnica")
+    st.header("Redacción Técnica (Claude 4.6)")
     tipo_doc = st.selectbox("Documento:", ["Nexo Transversal", "Carta de Recomendación", "Impacto Nacional"])
     
-    if st.button("Generar Borrador Profesional"):
-        with st.spinner("Conectando con el motor de inteligencia..."):
+    if st.button("Generar con Claude 4.6"):
+        with st.spinner("Llamando a Sonnet 4.6..."):
             try:
-                # SOLUCIÓN DEFINITIVA: Probamos el identificador universal de Sonnet
-                # Si este falla, el sistema lo reportará, pero es el estándar de 2026.
+                # IDENTIFICADOR EXACTO SEGÚN TU WORKBENCH (Imagen image_78729e.png)
                 response = client_claude.messages.create(
-                    model="claude-3-5-sonnet-latest", 
-                    max_tokens=4096,
+                    model="claude-sonnet-4-6", 
+                    max_tokens=4000,
                     messages=[{
                         "role": "user", 
-                        "content": f"Eres un experto legal en EB2-NIW. Redacta un {tipo_doc} para el [Peticionario Alfa] basado en el [Proyecto de Infraestructura X]. Usa el estándar Matter of Dhanasar."
+                        "content": f"Eres un experto en EB2-NIW. Redacta un {tipo_doc} para el [Peticionario Alfa] basado en el [Proyecto de Infraestructura X]. Usa Matter of Dhanasar."
                     }]
                 )
                 
                 texto = response.content[0].text
-                st.markdown("### Resultado de la Generación:")
+                st.markdown("### Borrador Generado:")
                 st.write(texto)
                 
-                # Generador de Word express
                 doc = Document()
                 doc.add_paragraph(texto)
                 buffer = BytesIO()
@@ -67,13 +60,16 @@ with tabs[1]:
                 st.download_button("📥 Descargar Word", data=buffer.getvalue(), file_name="argumento.docx")
                 
             except Exception as e:
-                st.error("Error de modelo. Intentando ruta de respaldo...")
-                # Backup con GPT-4 si Claude falla por saturación de red en 2026
-                res_backup = client_openai.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[{"role": "user", "content": f"Redacta un {tipo_doc} para EB2-NIW [Peticionario Alfa]"}]
-                )
-                st.write(res_backup.choices[0].message.content)
+                # Si el modelo específico falla, intentamos el alias 'latest'
+                try:
+                    response = client_claude.messages.create(
+                        model="claude-3-5-sonnet-latest",
+                        max_tokens=4000,
+                        messages=[{"role": "user", "content": f"Redacta un {tipo_doc} para EB2-NIW"}]
+                    )
+                    st.write(response.content[0].text)
+                except:
+                    st.error(f"Error técnico de Anthropic: {str(e)}")
 
 with tabs[2]:
-    st.info("Patrón GENERAL. activo. Auditoría de Dhanasar en progreso.")
+    st.info("Patrón GENERAL. activo. Análisis de mérito sustancial en curso.")
