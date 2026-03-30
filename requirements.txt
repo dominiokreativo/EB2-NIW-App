@@ -1,5 +1,6 @@
 streamlit
 supabase
 google-generativeai
+anthropic
 pandas
 python-docx
